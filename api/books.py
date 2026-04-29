@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from schemas.book import BookCreate, BookOut
 from services.book_service import *
+from api.dependencies import get_current_user
+from models.user import User
 
 router = APIRouter()
 
@@ -15,21 +17,38 @@ def get_db():
 
 
 @router.get("/books", response_model=list[BookOut])
-def list_all(limit: int = 10, offset: int = 0, db: Session = Depends(get_db)):
+def list_all(
+    limit: int = 10,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     return list_books(db, limit, offset)
 
 
 @router.post("/books", response_model=BookOut)
-def create_book(book: BookCreate, db: Session = Depends(get_db)):
+def create_book(
+    book: BookCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     return create(db, book)
 
 
 @router.get("/books/{book_id}", response_model=BookOut)
-def get_by_id(book_id: str, db: Session = Depends(get_db)):
+def get_by_id(
+    book_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     return get_one(db, book_id)
 
 
 @router.delete("/books/{book_id}")
-def delete_book(book_id: str, db: Session = Depends(get_db)):
+def delete_book(
+    book_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     delete(db, book_id)
     return {"status": "deleted"}
