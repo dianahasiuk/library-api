@@ -1,0 +1,314 @@
+openapi: 3.0.3
+info:
+  title: Library API
+  description: REST API для управління бібліотекою книг
+  version: 1.0.0
+
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+            example:
+              username: testuser
+              password: testpass
+      responses:
+        "200":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserOut"
+              example:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                username: testuser
+                is_active: true
+
+  /login:
+    post:
+      summary: Login and get tokens
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+            example:
+              username: testuser
+              password: testpass
+      responses:
+        "200":
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+              example:
+                access_token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciJ9.abc123
+                refresh_token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciJ9.xyz456
+                token_type: bearer
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              example:
+                detail: Invalid credentials
+
+  /refresh:
+    post:
+      summary: Refresh access token
+      tags:
+        - Auth
+      parameters:
+        - in: query
+          name: refresh_token
+          required: true
+          schema:
+            type: string
+          example: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciJ9.xyz456
+      responses:
+        "200":
+          description: New tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+              example:
+                access_token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciJ9.new123
+                refresh_token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciJ9.new456
+                token_type: bearer
+        "401":
+          description: Invalid or expired token
+
+  /books:
+    get:
+      summary: Get all books
+      tags:
+        - Books
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookOut"
+              example:
+                - id: "123e4567-e89b-12d3-a456-426614174000"
+                  title: Kobzar
+                  author: Taras Shevchenko
+                  description: Collection of poems
+                  status: available
+                  year: 1840
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                detail: Invalid or expired token
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              example:
+                detail: Rate limit exceeded. Try again later.
+
+    post:
+      summary: Create a new book
+      tags:
+        - Books
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreate"
+            example:
+              title: Kobzar
+              author: Taras Shevchenko
+              description: Collection of poems
+              status: available
+              year: 1840
+      responses:
+        "200":
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookOut"
+              example:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                title: Kobzar
+                author: Taras Shevchenko
+                description: Collection of poems
+                status: available
+                year: 1840
+        "401":
+          description: Unauthorized
+        "429":
+          description: Rate limit exceeded
+
+  /books/{book_id}:
+    get:
+      summary: Get book by ID
+      tags:
+        - Books
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: book_id
+          required: true
+          schema:
+            type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookOut"
+              example:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                title: Kobzar
+                author: Taras Shevchenko
+                description: Collection of poems
+                status: available
+                year: 1840
+        "401":
+          description: Unauthorized
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              example:
+                detail: Book not found
+        "429":
+          description: Rate limit exceeded
+
+    delete:
+      summary: Delete book by ID
+      tags:
+        - Books
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: book_id
+          required: true
+          schema:
+            type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: Book deleted
+          content:
+            application/json:
+              example:
+                status: deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: Book not found
+        "429":
+          description: Rate limit exceeded
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    UserCreate:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    UserOut:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        is_active:
+          type: boolean
+
+    Token:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+
+    BookCreate:
+      type: object
+      required:
+        - title
+        - author
+        - description
+        - status
+        - year
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        year:
+          type: integer
+
+    BookOut:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        year:
+          type: integer

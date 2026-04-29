@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   db:
     image: postgres:15
@@ -23,6 +22,15 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/library
     restart: always
+
+  prism:
+    image: stoplight/prism:4
+    container_name: library_prism
+    command: mock -h 0.0.0.0 /tmp/openapi.yaml
+    ports:
+      - "4010:4010"
+    volumes:
+      - ./openapi.yaml:/tmp/openapi.yaml
 
 volumes:
   pgdata:
